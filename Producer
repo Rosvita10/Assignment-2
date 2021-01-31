@@ -18,3 +18,183 @@ public type APIGatewayListener object {
        EndpointConfiguration config;
        http:Listener httpListener;
    }
+   
+// create SQL client for MySQL database
+
+dbc:Client voterDB = new ({
+    url: config:getAsString("DATABASE_URL", "jdbc:mysql://localhost:9090/VOTER_DATA"),
+    username: config:getAsString("DATABASE_USERNAME", "root"),
+    password: config:getAsString("DATABASE_PASSWORD", "root"),
+    poolOptions: { maximumPoolSize: 5 },
+    dbOptions: { useSSL: false }
+});
+
+@docker:Config{
+    name: "testVoTo"
+    tag: "V8.3"
+}
+@docker:Expose{}
+
+@kubernetes:Ingress {
+   hostname: "",
+   name: "",
+   path: "/"
+}
+@kubernetes:Service {
+   serviceType: "NodePort",
+   name: ""
+}
+
+@kubernetes:Deployment {
+   image: "",
+   baseImage: "",
+   name: "",
+   copyFiles: [{ target: "",
+               source: <path_to_JDBC_jar> }]
+}
+
+@http:ServiceConfig{
+    basePath: "/addNew"
+}
+service candidates on httpListener {
+    @http:ResourceConfig{
+        path: "/candidates/{name}"
+    }
+
+    resource function candidates(http:Caller outboundEP, http:Request request){
+        http:Response res = new;
+
+        var payloadJson = request.getJsonPayload();
+
+        if (payloadJson is json) {
+            Candidate|error candidateData = Candidate.constructFrom(payloadJson);
+
+            response.setPayload("candidates": [
+      {
+        "name: Mema Haingura",
+        "name: John Joseph",
+        "name: Sophie Chantelle",
+
+      },
+                } else {
+                    json ret = viewData(candidateData.name);
+      
+);
+
+                    response.setPayload(ret);
+                }
+            }
+        }
+        
+        ervice newVoter on httpListener {
+    @http:ResourceConfig{
+        path: "/voters/{name}"
+    }
+
+    resource function newVoter(http:Caller outboundEP, http:Request request){
+        http:Response res = new;
+
+        var payloadJson = request.getJsonPayload();
+
+        if (payloadJson is json) {
+            Voter|error voterData = Voter.constructFrom(payloadJson);
+
+            if (voterData is Voter) {
+                // Validate JSON payload
+                if (voterData.name == "" || voterData.address == "" || voterData.voterId == 0 ) {
+                  response.statusCode = 400;
+                   response.setPayload("Error: JSON payload should contain " +
+                   "{name:<string>, address:<address>, voterId:<int>");
+            } else {
+             // Invoke addVoters function to save data in the MySQL database
+             json ret = insertData(voterData.name, voterData.address, voterData.citizenship, voterData.gender, voterData.age, voterData.voterId);
+              response.setPayload("data": {
+    "allVoters": [
+      {
+        "id: 1",
+        "name": "Pavel Sikere",
+        "address": "Rundu, Safari",
+        "category": VOTER
+      },
+{
+        "id: 2",
+        "name": "Gerald Gillum",
+        "address": "Grootfontein, Town View",
+        "category": VOTER
+      },
+      {
+        "id: 3",
+        "name": "Olzen Buyanha",
+        "address": "Windhoek, Kleine Kuppe",
+        "category": VOTER
+      }
+    ]
+    };
+);
+                    
+          response.setPayload(ret);
+                }
+                
+                } else {
+                // Send an error response in case of a conversion failure
+                response.statusCode = 500;
+                response.setPayload("Error");
+            }
+        }
+
+    }
+
+}
+
+service viewVoter on httpListener {
+    @http:ResourceConfig{
+        methods: ["GET"],
+        path: "/voters/{id}"
+    }
+
+resource function getVotingInfo(grpc:Caller caller, grpc:Headers headers) {
+    boolean deadlineExceeded = caller->isDeadlineExceeded(headers);
+}
+    
+    resource function viewVoters(http:Caller outboundEP, http:Request request, voterData){
+        http:Response res = new;
+
+
+var empID = ints:fromString(employeeId);
+        if (voterID is int) {
+            // Invoke retrieveById function to retrieve data from MYSQL database
+            var result = rch.readJson(voterId);
+
+            json viewCurrentInfo = {"id: ",
+        "name": " ",
+        "address": " ",
+        "category": VOTER};
+
+            var sendResult = kafkaProducer->send(message) //topic in kafka;
+            // Send the response back to the client with the employee data
+            response.setPayload(employeeData);
+        } 
+        else if(sendResult is error){
+            response.statusCode = 500;
+            response.setJsonPayload({"The ID entered is not registered in the system!"});
+            var responseResult = outboundEP->respond(response);
+        }
+        //Send a success
+        response.setJsonPayload({"Succesfull!"});
+        var responseResult = outboundEP->respond(response);
+    }
+    
+}
+
+service fraud on httpListener {
+    @http:ResourceConfig{
+        methods: ["GET"],
+        path: "/voters/{rejects}"
+    }
+
+    
+    type ProcessedReview record {
+    boolean isFraud?;
+    Review review?;
+    !...;
+};
