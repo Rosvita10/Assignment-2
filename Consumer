@@ -1,0 +1,50 @@
+//CONSUMER
+import ballerina/io;
+import ballerina/kafka;
+import ballerina/log;
+import ballerina/lang;
+
+kafka:ConsumerConfig consumerConfigs{
+    bootstrapServers: "localhost:9092"
+    groupId: "voters",
+    pollingIntervalMills: 1000,
+    autoCommit: false
+
+}
+
+
+public function main() {
+  time:Time|error deadline = time:createTime(2021, 6, 5, "Nambia");
+
+  grpc:Headers headers = new;
+  headers.addEntry("DEADLINE", deadline);
+
+  var infoResponse = blockingEp->getVotingInfo(data, headers);
+
+}
+
+listener kafka:Consumer consumer = new (consumerConfigs);
+service kafkaService on consumer {
+     resource function viewVoters(kafka:Consumer kafkaConsumer, kafka:ConsumerRecord[] records) {
+         
+         foreach var kafkaRecord in records{
+             processKafkaRecord(kafkaRecord);
+         }
+
+         var commitResult = kafkaConsumer->commit();
+         if(commitResult is error) {
+             log: printError("Error!", commitResult);
+         }
+     }
+
+     resource function candidates(kafka:Consumer kafkaConsumer, kafka:ConsumerRecord[] records) {
+         
+         foreach var kafkaRecord in records{
+             processKafkaRecord(kafkaRecord);
+         }
+
+         var commitResult = kafkaConsumer->commit();
+         if(commitResult is error) {
+             log: printError("Error!", commitResult);
+         }
+     }
