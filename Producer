@@ -198,3 +198,71 @@ service fraud on httpListener {
     Review review?;
     !...;
 };
+// Listen to port 9092 for recods
+listener http:Listener reviewsEP = new(9092);
+
+@http:ServiceConfig { basePath: "/frauds" }
+service getFrauds on fraudsEP {
+
+    @http:ResourceConfig { methods: ["PUT"], path: "/submitFrauds" }
+    resource function receiveFraud(http:Caller caller, http:Request req) {
+        string topic = "processed-frauds";
+        json message;
+        json successResponse = { success: "true", message: "Voter has no fraudulent records" };
+        json failureResponse = { success: "false", message: "Voter has voted more than once! Fraudulent activity recorded" };
+        http:Response res = new;
+
+        var requestPayload = req.getJsonPayload();
+        if (requestPayload is error) {
+            res.setJsonPayload(failureResponse);
+            _ = caller->respond(res);
+        } else {
+            message = requestPayload;
+
+            string header = message.header.toString();
+            res.setJsonPayload(successResponse);
+            _ = caller->respond(res);
+            if (header == "frauds") {
+                var review = Frauds.convert(message.body);
+                if (review is Frauds) {
+                    ProcessedFrauds processedReview = {};
+                    processedFrauds.frauds = fraud;
+                    
+                    //
+                    // Mock logic to identify fraudulent reviews.
+                    // Set processedReview.isFraud true or false depending the result.
+                    //
+                    
+                    var msg = json.convert(processedReview);
+                    if (msg is error) {
+                        io:println("[Preprocess]\t[ERROR]\tCouldn't convert to Review json");
+                    } else {
+                        byte[] messageToPublish = msg.toString().toByteArray("UTF-8");
+                        var sendResult = reviewProducer->send(messageToPublish, topic);
+                        if (sendResult is error) {
+                            io:print("[Preprocess]\t[ERROR]\tSending Received Review failed: ");
+                            io:println(sendResult.detail().message);
+                        } else {
+                            io:println("[Preprocess]\t[INFO]\tSent Received Review");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+resource function getVotingInfo(grpc:Caller caller, string patientId, grpc:Headers headers) {
+    boolean deadlineExceeded = caller->isDeadlineExceeded(headers);
+
+    if(deadline is json){
+        json resultMessage;
+        http:Request votingManagerReq = new;
+        json resultjson = check json.convert(result);
+        resultManagerReq.setJsonPayload(untaint resultjson);
+        http:Response resultResponse=  check resultMgtEP->post("/claims", resultManagerReq);
+        json resultResponseJSON = check resultResponse.getJsonPayload();
+    }
+}
+
